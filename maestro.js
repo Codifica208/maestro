@@ -1,7 +1,12 @@
-function Maestro () {
+let fs = require('fs');
+
+function Maestro (basedir = '') {
 	_self = this;
 	_startCalled = false;
 	_initialized = false;
+
+	_baseDir = basedir;
+	_loadPromise = Promise.resolve();
 
 	_modules = {};
 	_inits = [];
@@ -10,6 +15,34 @@ function Maestro () {
 	_checkInitialization = () => {
 		if (_initialized)
 			throw '[Maestro] Already initialized!';
+	}
+
+	_createFilePromise = (file) => {
+		return new Promise((resolve, reject) => {
+			fs.stat(file, (error, stats) => {
+				if (!error && !stats.isDirectory()) {
+					let _module = require(`${_baseDir}/${file}`);
+					_module(_self);
+				}
+
+				resolve();
+			})
+		});
+	}
+
+	_loadFile = (file) => {
+		return () => _createFilePromise(file);
+	}
+
+	_loadDir = (dir) => {
+		return () => new Promise((resolve, reject) => {
+			fs.readdir(dir, (error, files) => {
+				if (error)
+					reject(error);
+				else
+					resolve(files.map(f => `${dir}/${f}`));
+			});
+		});
 	}
 
 	_orderChain = (items) => {
@@ -55,13 +88,62 @@ function Maestro () {
 					return () => {
 						let _module = _modules[moduleName];
 						let _dependencies = _module.dependencies.map(d => _modules[d].instance)
+
+						return _module
+							.provider(..._dependencies)
+							.then(instance => _module.instance = instance)
+							.catch(error => reject(error));
 					};
 				})(provider.name));
+
+			_configPromise.then(() => resolve());
 		});
 	}
 
 	_executeInits = () => {
+		return new Promise((resolve, reject) => {
+			let _promises = [];
 
+			for (let init of _inits) {
+				let _dependencies = [];
+
+				for (let dependency of init.dependencies) {
+					let _dependency = _modules[dependency];
+
+					if (!_dependency)
+						throw `Dependency not found (${d})`;
+
+					_dependencies.push(_dependency.instance);
+				}
+
+				_promises.push(init.func(..._dependencies))
+			}
+
+			return Promise
+				.all(_promises)
+				.catch(error => reject(error))
+				.then(() => resolve());
+		});
+	}
+
+	this.loadFiles = (...files) => {
+		_checkInitialization();
+
+		for (let file of files)
+			_loadPromise = _loadPromise.then(_loadFile(file));
+
+		return _self;
+	}
+
+	this.loadDirs = (...dirs) => {
+		_checkInitialization();
+
+		for (let dir in dirs)
+			_loadPromise = _loadPromise
+				.then(_loadDir(dir))
+				.then((files) => Promise.all(files.map(f => _createFilePromise(f))));
+
+		return _self;
 	}
 
 	this.define = () => {
@@ -148,20 +230,23 @@ function Maestro () {
 			resolve();
 		});
 
-		let _startPromise = _self.preStart || Promise.resolve;
-
 		_checkPromise
 			.then(() => _startCalled = true)
-			.then(_startPromise)
+			.then(_loadPromise)
+			.catch(error => {
+				error = "[Maestro] Error loading files: \r\n#{error} \r\n#{error.stack}";
+
+				return Promise.reject(error);
+			})
 			.then(_executeProviders)
-			.catch((error) => {
+			.catch(error => {
 				if (!error.startsWith || !error.startsWith('[Maestro]'))
 					error = `[Maestro] Error running providers: \r\n${error} \r\n${error.stack}`;
 
 				return Promise.reject(error);
 			})
 			.then(_executeInits)
-			.catch((error) => {
+			.catch(error => {
 				if (!error.startsWith || !error.startsWith('[Maestro]'))
 					error = `[Maestro] Error running inits: \r\n${error} \r\n${error.stack}`;
 
@@ -172,9 +257,7 @@ function Maestro () {
 
 				return _self;
 			});
-		});
 	}
 }
 
-let x = new Maestro();
-console.log(x);
+module.exports = Maestro;
