@@ -1,51 +1,58 @@
 let fs = require('fs');
 
 function Maestro (basedir = '') {
-	_self = this;
-	_startCalled = false;
-	_initialized = false;
+	let _self = this;
+	let _startCalled = false;
+	let _initialized = false;
 
-	_baseDir = basedir;
-	_loadPromise = Promise.resolve();
+	let _baseDir = basedir;
+	let _loadPromise = Promise.resolve();
 
-	_modules = {};
-	_inits = [];
-	_subscriptions = {};
+	let _modules = {};
+	let _inits = [];
+	let _subscriptions = {};
 
-	_checkInitialization = () => {
+	let _checkInitialization = () => {
 		if (_initialized)
 			throw '[Maestro] Already initialized!';
 	}
 
-	_createFilePromise = (file) => {
+	let _createFilePromise = (file) => {
 		return new Promise((resolve, reject) => {
-			fs.stat(file, (error, stats) => {
-				if (!error && !stats.isDirectory()) {
-					let _module = require(`${_baseDir}/${file}`);
-					_module(_self);
-				}
+			let _file = `${_baseDir}/${file}`;
 
-				resolve();
+			if (!_file.endsWith('.js'))
+				_file = `${_file}.js`;
+
+			fs.stat(_file, (error, stats) => {
+				if (!error && !stats.isDirectory()) {
+					let _module = require(_file);
+					_module(_self);
+					resolve();
+				}
+				else
+					reject(error);
 			})
 		});
 	}
 
-	_loadFile = (file) => {
+	let _loadFile = (file) => {
 		return () => _createFilePromise(file);
 	}
 
-	_loadDir = (dir) => {
+	let _loadDir = (dir) => {
 		return () => new Promise((resolve, reject) => {
-			fs.readdir(dir, (error, files) => {
+			let _dir = `${_baseDir}/${dir}`;
+			fs.readdir(_dir, (error, files) => {
 				if (error)
 					reject(error);
 				else
-					resolve(files.map(f => `${dir}/${f}`));
+					resolve(files.map(f => `${_dir}/${f}`));
 			});
 		});
 	}
 
-	_orderChain = (items) => {
+	let _orderChain = (items) => {
 		let _result = [];
 		let _visit = (i) => {
 			if (i.visited) return;
@@ -58,19 +65,19 @@ function Maestro (basedir = '') {
 				if (!_dependency)
 					throw `Dependency not found (${j})`;
 
-				visit(_dependency);
+				_visit(_dependency);
 			}
 
 			_result.push(i);
 		};
 
 		while (items.length > _result.length)
-			visit(items.find(item => !item.visited));
+			_visit(items.find(item => !item.visited));
 
 		return _result;
 	}
 
-	_executeProviders = () => {
+	let _executeProviders = () => {
 		return new Promise((resolve, reject) => {
 			let _providersChain = [];
 
@@ -100,7 +107,7 @@ function Maestro (basedir = '') {
 		});
 	}
 
-	_executeInits = () => {
+	let _executeInits = () => {
 		return new Promise((resolve, reject) => {
 			let _promises = [];
 
@@ -111,7 +118,7 @@ function Maestro (basedir = '') {
 					let _dependency = _modules[dependency];
 
 					if (!_dependency)
-						throw `Dependency not found (${d})`;
+						throw `Dependency not found (${dependency})`;
 
 					_dependencies.push(_dependency.instance);
 				}
@@ -146,10 +153,10 @@ function Maestro (basedir = '') {
 		return _self;
 	}
 
-	this.define = () => {
-		let moduleName = arguments[0];
-		let moduleConstructor = arguments[arguments.length - 1];
-		let dependencies = arguments.splice(1, arguments.length - 2);
+	this.define = (...args) => {
+		let moduleName = args[0];
+		let moduleConstructor = args[args.length - 1];
+		let dependencies = args.splice(1, args.length - 2);
 
 		_self.provide(moduleName, ...dependencies, (loadedDependencies) => {
 			return new Promise((resolve, reject) => {
@@ -158,12 +165,12 @@ function Maestro (basedir = '') {
 		});
 	}
 
-	this.provide = () => {
+	this.provide = (...args) => {
 		_checkInitialization();
 
-		let moduleName = arguments[0];
-		let moduleProvider = arguments[arguments.length - 1];
-		let dependencies = arguments.splice(1, arguments.length - 2);
+		let moduleName = args[0];
+		let moduleProvider = args[args.length - 1];
+		let dependencies = args.splice(1, args.length - 2);
 
 		_modules[moduleName] = {
 			dependencies: dependencies,
@@ -173,11 +180,11 @@ function Maestro (basedir = '') {
 		return _self;
 	}
 
-	this.init = () => {
+	this.init = (...args) => {
 		_checkInitialization();
 
-		let func = arguments[arguments.length - 1];
-		let dependencies = arguments.splice(1, arguments.length - 1);
+		let func = args[args.length - 1];
+		let dependencies = args.splice(0, args.length - 1);
 
 		_inits.push({
 			dependencies: dependencies,
@@ -230,9 +237,9 @@ function Maestro (basedir = '') {
 			resolve();
 		});
 
-		_checkPromise
+		return _checkPromise
 			.then(() => _startCalled = true)
-			.then(_loadPromise)
+			.then(() => _loadPromise)
 			.catch(error => {
 				error = "[Maestro] Error loading files: \r\n#{error} \r\n#{error.stack}";
 
