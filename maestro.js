@@ -207,14 +207,24 @@ function Maestro (basedir = '') {
 		if (_subscriptions[message]) {
 			let index = _subscriptions[message].findIndex(s => s === subscription);
 			if (index >= 0)
-				_subscriptions.splice(index, 1);
+				_subscriptions[message].splice(index, 1);
 		}
 
 		return _self;
 	}
 
 	this.broadcast = (message, data) => {
-		return;
+		let promises = [];
+
+		for (let subscribers of _subscriptions[message]) {
+			var result = subscribers(data);
+			if (!result || result.constructor != Promise)
+				result = Promise.resolve(result);
+
+			promises.push(result);
+		}
+
+		return Promise.all(promises);
 	}
 
 	this.resolve = (moduleName) => {
