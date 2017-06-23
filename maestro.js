@@ -84,24 +84,46 @@ function Maestro (basedir = '') {
 			for (let name in _modules)
 				_providersChain.push({
 						name: name,
-						dependencies: _modules[name].dependencies
+						dependencies: [..._modules[name].dependencies]
 				});
+
+			_providersChain.forEach(p => {
+				for (let i = 0; i < p.dependencies.length; i++)
+					if (p.dependencies[i].startsWith('.')) {
+						let args = _providersChain
+							.map(p => p.name)
+							.filter(n => n.endsWith(p.dependencies[i]));
+
+						args.unshift(i, 1);
+						p.dependencies.splice.apply(p.dependencies, args);
+					}
+			});
 
 			_orderedChain = _orderChain(_providersChain);
 			_configPromise = Promise.resolve();
 
 			for (let provider of _orderedChain)
-				_configPromise = _configPromise.then((moduleName => {
+				_configPromise = _configPromise.then((_provider => {
 					return () => {
-						let _module = _modules[moduleName];
-						let _dependencies = _module.dependencies.map(d => _modules[d].instance)
+						let _module = _modules[_provider.name];
+
+						let _dependencies = _module.dependencies.map(current => {
+							let result = _modules[current] && _modules[current].instance;
+
+							if (!result)
+								result = _provider.dependencies
+									.filter(d => d.endsWith(current))
+									.map(d => _modules[d].instance);
+
+							return result;
+						});
 
 						return _module
 							.provider(..._dependencies)
 							.then(instance => _module.instance = instance)
 							.catch(error => reject(error));
 					};
-				})(provider.name));
+				})(provider));
 
 			_configPromise.then(() => resolve());
 		});
