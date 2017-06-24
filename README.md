@@ -1,27 +1,22 @@
 # Maestro
 
-Maestro is an Orchestrator based on [iNGector](https://github.com/Codifica208/iNGector) (which is a Dependency Injection module inspired by the AngularJS's DI).
+Maestro is an orchestrator based on [iNGector](https://github.com/Codifica208/iNGector) (which is a Dependency Injection module inspired by the AngularJS's DI).
 
-### So ... what are the changes between Maestro and iNGector?
+### So ... what makes Maestro a newer and better version of iNGector?
 
-After using iNGector in several projects we missed some features, and struggled with some aspects of it. So here's what's changed.
-
-- ##### No more CoffeeScript source code.
-As ES6 brought arrow functions and some improvements on loop iterations we felt that there was no need to use CoffeeScript anymore.
+After using iNGector in some projects we realized that there were missing features and there were some things that could be droped.
 
 - ##### Message Broadcast.
-We realized after some effort that even with an direct relationship between the modules provided an event notifying feature was missed. In some cases we had more than 1 publisher of the same message type and we didn't like that the publisher has to known the subscribers neither that we have to had a phase where subscribers strictly register themselves to the providers.
-So we just simplified with a generic listen/broadcast message bus style.
+We added a simplified listen/broadcast message bus style.
 
 - ##### Dependencies by class.
-Now you dont have to depend upon a giant list of similar modules. You just cast them as a group using the **.class** convention.
+Now you don't have to depend upon a giant list of similar modules. You just cast them as a group using the **.class** convention.
 
 - ##### No more Web Browser mode.
 There are tons of frameworks to develop front-ends (e.g.: Aurelia.io) which has their own organization style. So we droped out the web browser mode.
 
-Some times we scenarios like dbcontext configuration, where theres a main piece of code that builds the context and there other files (children) that configurates the entities, in this case we have to explicitly make the main piece dependent of the children. As the children files grows the most we get unhappy with the main's definition.
-In C# we used to do reflections or ask for any classes that implements some interface.
-Based on that solution we added the possibility to depend on a Class of modules.
+- ##### No more CoffeeScript source code.
+As ES6 brought arrow functions and some improvements on loop iterations we felt that there was no need to use CoffeeScript anymore.
 
 ### Why another Dependency Injection module?
 
@@ -43,12 +38,12 @@ It accepts the following arguments:
 - **builder function**: a function that will be called to this part. It receives all the declared dependencies as arguments and must return a Promise.
 
 ```javascript
-.provide('my-piece-of-code', 'some-dependency', 'some-other-dependency', function (){
+.provide('my-piece-of-code', 'some-dependency', 'some-other-dependency', (someDependency, someOtherDependency) => {
 	return Promise.resolve({
-		showMessage: function(message) {
+		showMessage: message => {
 			alert(message);
 		}
-	})
+	});
 });
 ```
 
@@ -67,118 +62,69 @@ It accepts the following arguments:
 });
 ```
 
+#### Grouping dependencies with class
+
+You can also request a group of other parts using the **.class** convention:
+
+```javascript
+.provide('my-piece-of-code', '.group', groupArray => {
+	return Promise.resolve({
+		showMessage: message => {
+			alert(message);
+		}
+	});
+});
+```
+
+All parts named with the class (e.g. **example.group**) will be served in an array.
 
 #### Chaining method calls
 
 Both PROVIDE and INIT methods can be chained to each other, so you can call them like this:
 
 ```javascript
-.provide('mod-b', 'mod-a', function(modA){...})
-.provide('mod-a', function(){...})
-.init(function(){...});
+.provide('mod-b', 'mod-a', modA => {...})
+.provide('mod-a', () => {...})
+.init(() => {...});
 ```
 
-ps.: as you may notice, they do not need to be called in the correct order of dependency needs, iNGector will handle this for you.
+ps.: as you may notice, they do not need to be called in the correct order of dependency needs, Maestro will handle this for you.
 
 
 ### OK, all parts provided and all init blocks registered! Now what?!
 
 #### The START method
 
-This method tells iNGector that it must prepare and go. This is achieved in three phases:
+This method tells Maestro that it must prepare and go. This is achieved in three phases:
 
 1. ChainSolve Phase: solve the dependency chain and queue builder functions in needed order.
 2. ExecuteProvideBlocks Phase: call all builder functions in needed order.
 3. ExecuteInitBlocks Phase: call all run functions.
 
-It needs no arguments and returns a Promise that resolves with iNGector instance as result.
+It needs no arguments and returns a Promise that resolves with Maestro instance as result.
 
 ```javascript
 .start()
-.then(function(di){
-	// di is the iNGector instance
+.then(di => {
+	// di is the Maestro instance
 	console.log('All good!');
 })
-.catch(function(error){
+.catch(error => {
 	console.log('Some error occured: ' + error);
 });
 ```
 
-
 #### The RESOLVE method
-Once iNGector is started, you can call *resolve* method to get a piece of code previously provided.
+Once Maestro is started, you can call *resolve* method to get a piece of code previously provided.
 
 It accepts the name as the only argument.
 
 ```javascript
 .start()
-.then(function(di){
+.then(di => {
 	di.resolve('my-piece-of-code').showMessage('See!?');
 });
 ```
-
-
-## Usage in Web Clients
-
-### Promises
-
-Since iNGector uses Promises and not all browsers supports it natively, you may need to add a SCRIPT tag BEFORE the iNGector one to a Promises implementation.
-We recommend you to use A+ [Promisejs](https://www.promisejs.org/).
-
-### Adding iNGector to your web application
-
-1. Download the latest compiled version [here](https://github.com/Codifica208/iNGector/blob/master/dist/iNGector.js). (sorry it is not minified yet)
-2. Add a SCRIPT tag in your page before your implemantations files.
-
-```html
-<!-- If you want to support older browsers, add a Promises implementation of your preference.
-<script type="text/javascript" src="[path_to_file]/promise.js"></script>-->
-<script type="text/javascript" src="[path_to_file]/iNGector.js"></script>
-<!-- Now all your implementation scripts -->
-<script type="text/javascript" src="[path_to_file]/[some_implementation].js"></script>
-<script type="text/javascript" src="[path_to_file]/[another_implementation].js"></script>
-```
-
-
-### Accessing the iNGector instance
-
-When added to a HTML page, iNGector declares a global variable named **di** which is an iNGector instance (we really don't see the point of having two instances of it).
-As we know the order of registration (provides and inits) does not count, you can add your implementation scripts in ANY order.
-
-```javascript
-// some_implementation.js
-di.provide('mod-b', 'mod-a', function(modA) {
-	// ....
-});
-```
-
-```javascript
-// other_implementation.js
-di.provide('mod-a', function() {
-	// ....
-})
-.init('mod-b', function(modB){
-	// ....
-});
-```
-
-
-### Calling the START method once
-
-There are several ways to achieve that, one is
-
-- Add the START call in a separated file and assure that the SCRIPT tag pointing to this file is always the last one.
-
-and another is (our favorite)
-
-- Using [jQuery Ready](http://api.jquery.com/ready/) function.
-
-	```javascript
-	$(function(){ di.start(); });
-	```
-
-	ps.: note that the code above must be executed only once, and (of course) you'll need to add jQuery to your application.
-
 
 ## Usage in Node.js
 
