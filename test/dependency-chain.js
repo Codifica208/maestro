@@ -132,4 +132,29 @@ describe('Dependency chain', () => {
 			.start()
 			.catch(done);
 	});
+
+	it('Should resolve module by name', (done) => {
+		let _di = new Maestro();
+		_di
+			.provide('A', () => Promise.resolve('A'))
+			.start()
+			.then(() => {
+				_di.resolve('A').should.be.exactly('A');
+				done();
+			})
+			.catch(done);
+	});
+
+	it('Should resolve module by class', (done) => {
+		let _di = new Maestro();
+		_di
+			.provide('A.a', () => Promise.resolve('A'))
+			.provide('B.a', () => Promise.resolve('B'))
+			.start()
+			.then(() => {
+				_di.resolve('.a').length.should.be.exactly(2);
+				done();
+			})
+			.catch(done);
+	});
 });

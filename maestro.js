@@ -253,10 +253,19 @@ function Maestro (basedir = '') {
 		if (!_initialized)
 			throw `[Maestro] Cannot get ${moduleName}. Maestro is not initialized yet!`;
 
-		if (!_modules[moduleName])
+		let result = _modules[moduleName] && _modules[moduleName].instance;
+
+		if (!result)
+			for (let i in _modules)
+				if (i.endsWith(moduleName)) {
+					result = result || [];
+					result.push(_modules[i].instance);
+				}
+
+		if (!result)
 			throw `[Maestro] Block ${moduleName} not provided!`;
 
-		return _modules[moduleName].instance;
+		return result;
 	}
 
 	this.start = () => {
