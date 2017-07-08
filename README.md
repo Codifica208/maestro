@@ -110,7 +110,7 @@ It needs no arguments and returns a Promise that resolves with Maestro instance 
 	console.log('All good!');
 })
 .catch(error => {
-	console.log(`Some error occured: ${error}`);
+	console.log(`Some error occured: ${error}`);
 });
 ```
 
