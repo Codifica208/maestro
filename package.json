@@ -1,0 +1,28 @@
+{
+  "name": "maestro",
+  "version": "1.0.0",
+  "description": "Maestro is an orchestrator for nodejs. (Dependency Injection & Message Bus)",
+  "main": "maestro.js",
+  "files": [
+    "maestro.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Codifica208/Maestro.git"
+  },
+  "keywords": [
+    "dependency",
+    "injection",
+    "injector",
+    "ingector",
+    "message",
+    "bus",
+    "orchestrator"
+  ],
+  "author": "luidones",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Codifica208/Maestro/issues"
+  },
+  "homepage": "https://github.com/Codifica208/Maestro#readme"
+}

@@ -7,10 +7,10 @@ describe('Message bus', () => {
 		let notifiedSubscribers = [];
 
 		_di
-			.listen(key, function(data) {
+			.listen(key, data => {
 				notifiedSubscribers.push('subscriber-a');
 			})
-			.listen(key, function(data) {
+			.listen(key, data => {
 				notifiedSubscribers.push('subscriber-b');
 			})
 			.start()
@@ -27,13 +27,13 @@ describe('Message bus', () => {
 		let key = 'event-notification';
 		let notifiedSubscribers = [];
 
-		let subscriberA = function(data) {
+		let subscriberA = data => {
 			notifiedSubscribers.push('subscriber-a');
 		};
 
 		_di
 			.listen(key, subscriberA)
-			.listen(key, function(data) {
+			.listen(key, data => {
 				notifiedSubscribers.push('subscriber-b');
 			})
 			.start()
