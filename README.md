@@ -16,7 +16,7 @@ Now you don't have to depend upon a giant list of similar modules. You just cast
 There are tons of frameworks to develop front-ends (e.g.: [Aurelia.io](http://aurelia.io)) which has their own organization style. So we droped out the web browser mode.
 
 - ##### No more CoffeeScript source code.
-As ES6 brought arrow functions and some improvements on loop iterations we felt that there was no need to use CoffeeScript anymore.
+As ES6 brought arrow functions and some improvements on loop iterations we felt that there was no need to use CoffeeScript.
 
 ### Why another Dependency Injection module?
 
@@ -184,7 +184,7 @@ di.ignore('channel-key', { name: 'John Doe', age: 30 });
 
 ## File loading
 
-We all know that a huge file sucks and we split our code in several files across several directories. To make everything easier, Maestro has some methods to help you loading those files.
+We all know that a huge file sucks and we split our code in several files across several directories. To make everything easier, Maestro has some methods to help you load those files.
 
 #### The LOADFILES method
 
@@ -196,7 +196,7 @@ It accepts files paths as arguments.
 di.loadFiles('/controllers/my-controller', '/config/server');
 ```
 
-In order to **loadFiles** to work, all loaded files must exports a function that accepts the Maestro instance as argument.
+In order to **loadFiles** to work, all loaded files must export a function that accepts the Maestro instance as argument.
 
 ```javascript
 module.exports = function (di) {
@@ -245,7 +245,7 @@ Last but not least, Maestro throws exceptions with the following messages:
 
 - **[Maestro] Already initialized!**. Occurs when:
 	- PROVIDE, INIT or START methods are called after initialization.
-	- LOADFILES or LOADDIRS methods are called after initialization. (node only)
+	- LOADFILES or LOADDIRS methods are called after initialization.
 
 - **[Maestro] Start already called!**. Occurs when START method is called more than once.
 
