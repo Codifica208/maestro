@@ -21,33 +21,34 @@ function Maestro (basedir = '') {
 		return new Promise((resolve, reject) => {
 			let _file = `${_baseDir}/${file}`;
 
-			if (!_file.endsWith('.js'))
-				_file = `${_file}.js`;
-
 			fs.stat(_file, (error, stats) => {
-				if (!error && !stats.isDirectory()) {
+				if (error)
+					reject(error);
+				else if (stats.isDirectory())
+					resolve();
+				else {
 					let _module = require(_file);
 					_module(_self);
 					resolve();
 				}
-				else
-					reject(error);
-			})
+			});
 		});
 	}
 
 	let _loadFile = (file) => {
+		if (!file.endsWith('.js'))
+			file = `${file}.js`;
+
 		return () => _createFilePromise(file);
 	}
 
 	let _loadDir = (dir) => {
 		return () => new Promise((resolve, reject) => {
-			let _dir = `${_baseDir}/${dir}`;
-			fs.readdir(_dir, (error, files) => {
+			fs.readdir(`${_baseDir}/${dir}`, (error, files) => {
 				if (error)
 					reject(error);
 				else
-					resolve(files.map(f => `${_dir}/${f}`));
+					resolve(files.map(f => `${dir}/${f}`));
 			});
 		});
 	}
@@ -167,7 +168,7 @@ function Maestro (basedir = '') {
 	this.loadDirs = (...dirs) => {
 		_checkInitialization();
 
-		for (let dir in dirs)
+		for (let dir of dirs)
 			_loadPromise = _loadPromise
 				.then(_loadDir(dir))
 				.then((files) => Promise.all(files.map(f => _createFilePromise(f))));
@@ -282,21 +283,21 @@ function Maestro (basedir = '') {
 			.then(() => _startCalled = true)
 			.then(() => _loadPromise)
 			.catch(error => {
-				error = "[Maestro] Error loading files: \r\n#{error} \r\n#{error.stack}";
+				error = `[Maestro] Error loading files: \r\n${error} \r\n${error && error.stack}`;
 
 				return Promise.reject(error);
 			})
 			.then(_executeProviders)
 			.catch(error => {
 				if (!error.startsWith || !error.startsWith('[Maestro]'))
-					error = `[Maestro] Error running providers: \r\n${error} \r\n${error.stack}`;
+					error = `[Maestro] Error running providers: \r\n${error} \r\n${error && error.stack}`;
 
 				return Promise.reject(error);
 			})
 			.then(_executeInits)
 			.catch(error => {
 				if (!error.startsWith || !error.startsWith('[Maestro]'))
-					error = `[Maestro] Error running inits: \r\n${error} \r\n${error.stack}`;
+					error = `[Maestro] Error running inits: \r\n${error} \r\n${error && error.stack}`;
 
 				return Promise.reject(error);
 			})

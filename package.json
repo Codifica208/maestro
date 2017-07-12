@@ -1,6 +1,6 @@
 {
   "name": "maestro-io",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Maestro is an orchestrator for nodejs. (Dependency Injection & Message Bus)",
   "main": "maestro.js",
   "files": [
