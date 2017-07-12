@@ -264,7 +264,7 @@ npm install maestro-io
 then just require and instantiate
 
 ```javascript
-let Maestro = require('maestro');
+let Maestro = require('maestro-io');
 let di = new Maestro();
 ```
 
